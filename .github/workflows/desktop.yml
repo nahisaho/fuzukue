@@ -1,0 +1,63 @@
+name: Desktop validation
+on:
+  push:
+    paths-ignore:
+      - ".github/skills/**"
+  pull_request:
+    paths-ignore:
+      - ".github/skills/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  viewer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:rust
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npm run test:rust
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
+      - run: npm run desktop:build
+      - name: Collect unsigned Windows release files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path release | Out-Null
+          $installers = @(Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe)
+          if ($installers.Count -ne 1) { throw "Expected exactly one NSIS installer." }
+          Copy-Item $installers[0].FullName release/
+          Copy-Item src-tauri/target/release/fuzukue.exe, LICENSE, THIRD_PARTY_NOTICES.txt release/
+          $checksums = Get-ChildItem release -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          $checksums | Set-Content release/SHA256SUMS.txt -Encoding ascii
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fuzukue-windows-x64
+          path: release/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,44 @@
+{
+  "files": {
+    "by": "ai:claude-sonnet-5.5",
+    "kind": "ai",
+    "review": "Reviewed contracts and independent native risk review; evidence-only spec update; no unresolved native findings.",
+    "at": "2026-10-25T09:35:38.366Z",
+    "artifacts": {
+      ".sdd/specs/files.md": "aae32e58b7f136e35cbc2cabea887a6d28bb878104c47a13d69742c1dec083f1"
+    },
+    "tier": "T2",
+    "requireHuman": false
+  },
+  "markdown": {
+    "by": "nahisaho",
+    "kind": "human",
+    "at": "2026-10-25T13:35:09.704Z",
+    "artifacts": {
+      ".sdd/specs/markdown.md": "c542a1e4674042ffed84c0d0ab292cd83faa475ab4afe71ae2a4442f7d0db506"
+    },
+    "tier": "T2",
+    "requireHuman": false
+  },
+  "images": {
+    "by": "nahisaho",
+    "kind": "human",
+    "at": "2026-10-25T13:35:09.504Z",
+    "artifacts": {
+      ".sdd/specs/images.md": "ad58bf29d988942d791edef4e1fc9a16f35160f34e86ecb9f64d76f842c74c95"
+    },
+    "tier": "T2",
+    "requireHuman": false
+  },
+  "pdf": {
+    "by": "ai:claude-sonnet-5.5",
+    "kind": "ai",
+    "review": "Independent native callback/guard/persistence review clean; Windows API and production cross-check passed; native runtime smoke remains unverified; evidence-only update.",
+    "at": "2026-10-25T09:35:38.864Z",
+    "artifacts": {
+      ".sdd/specs/pdf.md": "5a0d89e97b75e4604c6397ffc2bac5ff1b2e0b4eb8cb7bec8c7d3384b7238376"
+    },
+    "tier": "T2",
+    "requireHuman": false
+  }
+}

@@ -1,0 +1,37 @@
+# Fuzukue changelog
+
+Release changes and known limitations for users installing or upgrading Fuzukue.
+Version numbers follow Semantic Versioning.
+
+## [0.1.0] - 2026-10-26
+
+### Breaking changes
+
+None. This is the first release; no migration is required.
+
+### Added
+
+- Open a single local UTF-8 Markdown document through a native dialog or drag-and-drop in a Rust/Tauri 2 Windows x64 application.
+- Read GitHub-style tables, task lists and fenced code, plus Qiita-style notes, code filenames, footnotes and details.
+- Render TeX with KaTeX using dollar delimiters, bracket delimiters including `\(\bar r\)`, and fenced math blocks.
+- Render Mermaid diagrams offline and display relative PNG/SVG images or remote HTTP(S) images.
+- Navigate headings, switch light/dark themes and use the Japanese reading interface.
+- Save an A4 PDF directly to a selected destination through WebView2, without a print dialog.
+- Confine local image access to the document directory and show rendering errors before allowing PDF export.
+- Provide an unsigned Windows x64 NSIS installer and standalone executable, English/Japanese documentation and an MIT project license.
+
+### Fixed
+
+- Preserve safe SVG colors, lines, fonts and local glyph references instead of turning Matplotlib SVG figures into black rectangles.
+- Avoid development-server port collisions by reserving an available loopback port and closing only the launcher's own server.
+- Pin dependencies to versions retrievable from the npm mirror used during validation without changing organization-managed npm settings.
+
+### Known limitations
+
+- Black rendering outside linked images has been reported and remains unresolved; the SVG fix does not establish that this separate problem is solved.
+- Interactive Windows smoke testing and native WebView2 PDF fidelity checks remain incomplete. Automated unit/browser checks and Windows-target builds do not replace those checks.
+- Windows may warn about unsigned binaries. The installer needs internet access to obtain WebView2 if it is missing; the standalone executable requires WebView2 already installed.
+- The application is a read-only, single-document viewer, not an exact GitHub/Qiita clone; editing, tabs, file watching, file associations and video/SNS embeds are not supported.
+- Remote images contact their hosts. Arbitrary SVG CSS, animation and external SVG resources are intentionally disabled.
+
+[0.1.0]: https://github.com/nahisaho/fuzukue/releases/tag/v0.1.0

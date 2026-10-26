@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "scan": {
+    "include": ["src/**", "scripts/**", "test/**", "src-tauri/src/**"],
+    "exclude": [".github/**", "node_modules/**", "src-tauri/target/**"]
+  },
+  "testCmd": [
+    "node",
+    "--test",
+    "--test-name-pattern",
+    "{id}(?![0-9A-Za-z])",
+    "{file}"
+  ],
+  "prepare": {
+    "cmd": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "outputs": [],
+    "timeoutMs": 1800000
+  },
+  "checks": [
+    {
+      "name": "lint",
+      "cmd": [
+        "npm",
+        "run",
+        "lint"
+      ]
+    },
+    {
+      "name": "test",
+      "cmd": [
+        "npm",
+        "run",
+        "test"
+      ]
+    },
+    {
+      "name": "browser",
+      "cmd": ["npm", "run", "test:e2e"]
+    }
+  ],
+  "projects": [{
+    "root": "src-tauri",
+    "testCmd": ["cargo", "test", "--lib", "{idu}"],
+    "checks": [
+      { "name": "test", "cmd": ["cargo", "test", "--locked", "--lib"] },
+      { "name": "format", "cmd": ["cargo", "fmt", "--check"] },
+      { "name": "clippy", "cmd": ["cargo", "clippy", "--locked", "--all-targets", "--", "-D", "warnings"] }
+    ]
+  }],
+  "timeoutMs": 120000,
+  "scopePolicy": "strict"
+}
