@@ -1,5 +1,14 @@
 import createDOMPurify from "dompurify";
 
+function embeddedPng(value, window) {
+  const match = value?.match(/^data:image\/png;base64,([\s\S]*)$/i);
+  if (!match) return null;
+  const data = match[1].replace(/\s/g, "");
+  if (data.length < 12 || data.length % 4 || !/^[a-z0-9+/]*={0,2}$/i.test(data)) return null;
+  if (!window.atob(data.slice(0, 12)).startsWith("\x89PNG\r\n\x1a\n")) return null;
+  return `data:image/png;base64,${data}`;
+}
+
 /** @id CODE-IMAGES-004 @implements REQ-IMAGES-004 */
 function imageData(image, window) {
   if (image.mime === "image/png") return `data:image/png;base64,${image.data}`;
@@ -34,6 +43,10 @@ function imageData(image, window) {
   };
   purifier.addHook("uponSanitizeElement", (node) => {
     if (node.namespaceURI !== "http://www.w3.org/2000/svg") return;
+    if (node.localName === "image" && !["href", "xlink:href"].some((attribute) => embeddedPng(node.getAttribute(attribute), window))) {
+      node.remove();
+      return;
+    }
     for (const [property, rule] of Object.entries(styles)) {
       const value = node.style?.getPropertyValue(property).trim();
       if (value && rule.test(value)) node.setAttribute(property, value);
@@ -41,8 +54,10 @@ function imageData(image, window) {
   });
   purifier.addHook("uponSanitizeAttribute", (node, data) => {
     if (data.attrName === "href" || data.attrName === "xlink:href") {
+      const png = node.localName === "image" && embeddedPng(data.attrValue, window);
       data.keepAttr = node.namespaceURI === "http://www.w3.org/2000/svg"
-        && node.localName === "use" && fragment.test(data.attrValue);
+        && (node.localName === "use" && fragment.test(data.attrValue) || Boolean(png));
+      if (png) data.attrValue = png;
     }
     if (/^(?:fill|stroke|filter|clip-path|mask|cursor|marker-start|marker-mid|marker-end)$/.test(data.attrName)
       && /url\s*\(|\\|\/\*/i.test(data.attrValue) && !localUrl.test(data.attrValue)) {
@@ -51,8 +66,9 @@ function imageData(image, window) {
   });
   const clean = purifier.sanitize(svg, {
     USE_PROFILES: { svg: true, svgFilters: true },
-    ADD_TAGS: ["use"],
-    FORBID_TAGS: ["script", "foreignObject", "style", "image", "feImage", "a", "animate", "set", "animateTransform", "animateMotion", "mpath"],
+    ADD_TAGS: ["use", "image"],
+    ADD_DATA_URI_TAGS: ["image"],
+    FORBID_TAGS: ["script", "foreignObject", "style", "feImage", "a", "animate", "set", "animateTransform", "animateMotion", "mpath"],
     FORBID_ATTR: ["style"],
     ALLOW_DATA_ATTR: false
   });

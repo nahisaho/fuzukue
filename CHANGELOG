@@ -3,6 +3,64 @@
 Release changes and known limitations for users installing or upgrading Fuzukue.
 Version numbers follow Semantic Versioning.
 
+## 0.2.4 - Unreleased
+
+### Added
+
+- Reorder reading-pane tabs by dragging their labels left or right with the mouse. Show the insertion position and automatically scroll overflowing tabs when holding the pointer at either edge.
+- Preserve the selected document, per-tab zoom and reading position when reordering. Keyboard tab switching and the next tab selected on close follow the new order.
+- Cancel tab drags on Escape, pointer cancellation or window focus loss, and disable reordering during file and PDF operations.
+
+### Known limitations
+
+- This version has not been published. Native Windows/WebView2 mouse interaction still requires interactive validation.
+- Tabs and their order are not restored after restarting.
+
+## 0.2.3 - Unreleased
+
+### Fixed
+
+- Rasterize local SVG figures to approximately 300 dpi PNG during PDF export, retaining their layout and restoring the original SVG after success, cancellation or failure.
+- Preserve validated PNG images embedded in local SVG, including Matplotlib colorbars, while continuing to reject external and non-PNG image references.
+
+### Added
+
+- Place consecutive page numbers at the bottom center of every PDF page.
+
+### Known limitations
+
+- This version has not been published. Native WebView2 PDF capture still requires interactive validation.
+
+## [0.2.2]
+
+### Fixed
+
+- Restore the v0.2.0 multi-document tabs and per-tab zoom that were missing from the v0.2.1 development base.
+- Reload only the selected tab without creating duplicate tabs or changing other documents. Preserve tab order, zoom and scroll positions, and keep normal duplicate-file opens focused on their existing cached tab.
+- Preserve the current preview on read failures and allow retry. If refreshed content cannot be rendered, retain the previous preview but block stale PDF export until a successful reload.
+
+### Included functionality
+
+- Open up to 20 Markdown documents using multi-select or drag-and-drop, switch with Ctrl+Tab / Ctrl+Shift+Tab, and close with Ctrl+W.
+- Retain each tab's rendered content, outline and reading position; zoom documents independently from 50% to 200% while PDF output remains at 100%.
+
+### Known limitations
+
+- Interactive Windows/WebView2 rendering, native dialogs, drag-and-drop and PDF fidelity still require manual validation.
+- Tabs are not restored after restarting, and tab reordering is not supported.
+
+## [0.2.1] - Development 2026-10-28 (not published)
+
+### Added
+
+- Reload the current local Markdown file from disk with a toolbar button, without opening a file dialog. The preview, outline, math, diagrams and local images are rebuilt from the latest contents.
+- Disable reload when no local file is open or an operation is in progress. Read failures show an error and keep the current preview available for retry.
+
+### Known limitations
+
+- Native Windows/WebView2 rendering and PDF fidelity still require interactive validation.
+- PDF files cannot be opened; reload applies to the Markdown source document.
+
 ## [0.1.0] - 2026-10-26
 
 ### Breaking changes
@@ -34,4 +92,5 @@ None. This is the first release; no migration is required.
 - The application is a read-only, single-document viewer, not an exact GitHub/Qiita clone; editing, tabs, file watching, file associations and video/SNS embeds are not supported.
 - Remote images contact their hosts. Arbitrary SVG CSS, animation and external SVG resources are intentionally disabled.
 
+[0.2.1]: https://github.com/nahisaho/fuzukue/releases/tag/v0.2.1
 [0.1.0]: https://github.com/nahisaho/fuzukue/releases/tag/v0.1.0

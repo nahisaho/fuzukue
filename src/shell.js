@@ -2,6 +2,7 @@ const paths = {
   book: '<path d="M4 4h6a3 3 0 0 1 3 3v13a4 4 0 0 0-4-2H4z"/><path d="M20 4h-4a3 3 0 0 0-3 3v13a4 4 0 0 1 4-2h3z"/>',
   folder: '<path d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
   download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/>',
+  reload: '<path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/>',
   exit: '<path d="M10 4H4v16h6m5-12 4 4-4 4m-6-4h10"/>',
   arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
@@ -21,7 +22,7 @@ export function shellMarkup() {
     <div class="current-file" id="current-file" hidden>${icon("file")}<span id="sidebar-filename"></span></div>
     <div class="outline-header">${icon("list")} このドキュメント</div>
     <nav id="outline" aria-label="目次"><p class="outline-empty">ファイルを開くと、ここに<br>見出しが表示されます。</p></nav>
-    <div class="sidebar-bottom"><span class="local-dot"></span>ローカルで、静かに。<span class="version">v0.1</span></div>
+    <div class="sidebar-bottom"><span class="local-dot"></span>ローカルで、静かに。    <span class="version">v0.2.2</span></div>
   </aside>
   <div class="workspace">
     <header class="toolbar">
@@ -30,10 +31,19 @@ export function shellMarkup() {
         <button class="icon-button" id="theme-button" title="配色を切り替える" aria-label="ダークテーマに切り替える" aria-pressed="false">${icon("sun")}</button>
         <span class="toolbar-divider"></span>
         <button class="button subtle" id="open-button" title="Ctrl+O">${icon("folder")}<span>開く</span></button>
+        <button class="icon-button" id="reload-button" disabled title="ファイルを再読み込み" aria-label="ファイルを再読み込み">${icon("reload")}</button>
         <button class="button primary" id="export-button" disabled title="Ctrl+Shift+S">${icon("download")}<span>PDFに保存</span></button>
         <button class="icon-button" id="exit-button" title="アプリを終了" aria-label="アプリを終了">${icon("exit")}</button>
       </div>
     </header>
+    <div id="tab-strip" hidden>
+      <div id="tabs" role="tablist" aria-label="開いている文書"></div>
+      <div class="zoom-controls" aria-label="文書の倍率">
+        <button id="zoom-out" disabled aria-label="縮小" title="Ctrl+-">−</button>
+        <button id="zoom-reset" disabled aria-label="倍率を100%に戻す" title="Ctrl+0">100%</button>
+        <button id="zoom-in" disabled aria-label="拡大" title="Ctrl++">+</button>
+      </div>
+    </div>
     <main id="reading-pane">
       <section id="welcome" class="welcome">
         <div class="welcome-kicker"><span></span> A LITTLE SPACE FOR BIG IDEAS</div>

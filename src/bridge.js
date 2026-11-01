@@ -6,9 +6,21 @@ const requireDesktop = () => {
 };
 
 export const bridge = {
-  async open(path) {
+  async open(paths) {
     requireDesktop();
-    return invoke("open_document", { path: path ?? null });
+    return invoke("open_documents", { paths: paths ?? null });
+  },
+  async activate(documentId) {
+    requireDesktop();
+    return invoke("activate_document", { documentId });
+  },
+  async reload(documentId) {
+    requireDesktop();
+    return invoke("reload_document", { documentId });
+  },
+  async close(documentId) {
+    requireDesktop();
+    return invoke("close_document", { documentId });
   },
   async readImage(documentId, reference) {
     requireDesktop();
@@ -34,10 +46,10 @@ export const bridge = {
       unlisteners.push(await listen("tauri://drag-leave", () => hover(false)));
       unlisteners.push(await listen("tauri://drag-drop", ({ payload }) => {
         hover(false);
-        if (payload.paths.length !== 1) {
-          handler(null, "Markdownファイルを1つだけドロップしてください。");
+        if (!payload.paths.length) {
+          handler(null, "Markdownファイルをドロップしてください。");
         } else {
-          handler(payload.paths[0]);
+          handler(payload.paths);
         }
       }));
       return () => unlisteners.forEach((unlisten) => unlisten());

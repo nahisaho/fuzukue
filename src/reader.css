@@ -55,12 +55,21 @@
   --surface: #fff; --canvas: #fff; --ink: #222; --muted: #5f665f; --line: #ddd; --accent: #365e43; --soft: #f0f3ed;
   color-scheme: light;
 }
-@page { size: A4; margin: 16mm; }
+@page {
+  size: A4;
+  margin: 16mm;
+  @bottom-center {
+    content: counter(page);
+    font: 9pt "Segoe UI", sans-serif;
+    color: #5f665f;
+    text-align: center;
+  }
+}
 @media print {
   :root:root, :root:root[data-theme] { --surface: #fff; --canvas: #fff; --ink: #222; --muted: #5f665f; --line: #ddd; --accent: #365e43; --soft: #f0f3ed; color-scheme: light; }
   html, body, #app, .workspace, #reading-pane { display: block !important; height: auto !important; overflow: visible !important; background: white !important; color: #222 !important; }
-  .sidebar, .toolbar, .statusbar, #notice, #drop-overlay, #welcome, .document-meta, .document-end { display: none !important; }
-  #document-view { max-width: none; margin: 0; padding: 0; }
+  .sidebar, .toolbar, #tab-strip, .statusbar, #notice, #drop-overlay, #welcome, .document-meta, .document-end { display: none !important; }
+  #document-view { max-width: none; margin: 0; padding: 0; zoom: 1 !important; }
   .markdown-body { font-size: 10.5pt; line-height: 1.7; }
   .markdown-body h1 { font-size: 23pt; }
   .markdown-body h2 { font-size: 17pt; break-after: avoid; }

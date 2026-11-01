@@ -1,5 +1,5 @@
 use crate::{
-    document::{Document, Image, Operation, Session},
+    document::{Image, OpenResult, Operation, Session},
     pdf::persist_pdf,
 };
 use std::{
@@ -46,40 +46,84 @@ fn complete_pdf(sender: &PdfSender, outcome: Result<(), String>) {
 }
 
 #[tauri::command]
-async fn open_document(
+async fn open_documents(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
-    path: Option<String>,
-) -> Result<Option<Document>, String> {
+    paths: Option<Vec<String>>,
+) -> Result<OpenResult, String> {
     let operation = Operation::acquire(&state.busy)?;
     let session = Arc::clone(&state.session);
     tauri::async_runtime::spawn_blocking(move || {
         let _operation = operation;
-        let path = match path {
-            Some(path) => PathBuf::from(path),
+        let paths = match paths {
+            Some(paths) => paths.into_iter().map(PathBuf::from).collect::<Vec<_>>(),
             None => {
                 let selected = app
                     .dialog()
                     .file()
                     .add_filter("Markdown", &["md", "markdown"])
                     .set_title("Markdownファイルを開く")
-                    .blocking_pick_file();
+                    .blocking_pick_files();
                 match selected {
-                    Some(file) => file
-                        .into_path()
-                        .map_err(|e| format!("Invalid file path: {e}"))?,
-                    None => return Ok(None),
+                    Some(files) => files
+                        .into_iter()
+                        .map(|file| {
+                            file.into_path()
+                                .map_err(|e| format!("Invalid file path: {e}"))
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
+                    None => vec![],
                 }
             }
         };
-        session
+        let result = session
             .lock()
             .map_err(|e| format!("Document state is unavailable: {e}"))?
-            .open(&path)
-            .map(Some)
+            .open_many(&paths);
+        Ok(result)
     })
     .await
     .map_err(|e| format!("Open operation failed: {e}"))?
+}
+
+// @id CODE-TABS-NATIVE @implements REQ-TABS-003 REQ-TABS-004
+#[tauri::command]
+fn activate_document(state: State<'_, AppState>, document_id: u64) -> Result<(), String> {
+    let _operation = Operation::acquire(&state.busy)?;
+    state
+        .session
+        .lock()
+        .map_err(|e| format!("Document state is unavailable: {e}"))?
+        .activate(document_id)
+        .map(|_| ())
+}
+
+#[tauri::command]
+fn close_document(state: State<'_, AppState>, document_id: u64) -> Result<(), String> {
+    let _operation = Operation::acquire(&state.busy)?;
+    state
+        .session
+        .lock()
+        .map_err(|e| format!("Document state is unavailable: {e}"))?
+        .close(document_id)
+}
+
+#[tauri::command]
+async fn reload_document(
+    state: State<'_, AppState>,
+    document_id: u64,
+) -> Result<crate::document::Document, String> {
+    let operation = Operation::acquire(&state.busy)?;
+    let session = Arc::clone(&state.session);
+    tauri::async_runtime::spawn_blocking(move || {
+        let _operation = operation;
+        session
+            .lock()
+            .map_err(|e| format!("Document state is unavailable: {e}"))?
+            .reload(document_id)
+    })
+    .await
+    .map_err(|e| format!("Reload operation failed: {e}"))?
 }
 
 #[tauri::command]
@@ -239,7 +283,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
-            open_document,
+            open_documents,
+            reload_document,
+            activate_document,
+            close_document,
             read_image,
             export_pdf,
             open_external,

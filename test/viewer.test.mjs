@@ -14,6 +14,7 @@ test("TEST-SHELL-001 empty shell has accessible native actions", () => {
   const { document } = dom(shellMarkup()).window;
   assert.ok(document.querySelector("#open-button"));
   assert.equal(document.querySelector("#export-button").disabled, true);
+  assert.equal(document.querySelector("#reload-button").disabled, true);
   assert.ok(document.querySelector("#theme-button"));
   assert.ok(document.querySelector("#exit-button"));
   assert.ok(document.querySelector('[role="status"]'));
@@ -36,9 +37,9 @@ test("TEST-SHELL-002 theme and duplicate heading outline", () => {
 /** @id TEST-FILES-003 @verifies REQ-FILES-003 */
 test("TEST-FILES-003 action policy enumerates every state and operation", () => {
   const expected = {
-    empty: { open: true, export: false, exit: true },
-    ready: { open: true, export: true, exit: true },
-    busy: { open: false, export: false, exit: false }
+    empty: { open: true, reload: false, export: false, exit: true },
+    ready: { open: true, reload: true, export: true, exit: true },
+    busy: { open: false, reload: false, export: false, exit: false }
   };
   for (const [state, actions] of Object.entries(expected)) {
     for (const [action, allowed] of Object.entries(actions)) {
@@ -259,6 +260,31 @@ test("TEST-IMAGES-004 SVG preserves safe paint and local glyphs, not CSS or exte
   }
 });
 
+test("SVG preserves embedded PNGs but removes external images and other data types", async () => {
+  const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1cAAAAASUVORK5CYII=";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <image id="png" href="data:image/png;base64,${png}"/>
+    <image id="xlink" xlink:href="data:image/png;base64,\n${png}"/>
+    <image href="https://invalid.example/image.png"/>
+    <image href="data:image/svg+xml;base64,${Buffer.from("<svg/>").toString("base64")}"/>
+    <image href="data:image/png;base64,${Buffer.from("<svg/>").toString("base64")}"/>
+    <image href="data:image/png;base64,invalid!"/>
+  </svg>`;
+  const { document, Event } = dom('<article><img data-image-src="plot.svg"></article>').window;
+  const article = document.querySelector("article");
+  const pending = resolveImages(article, 1, {
+    readImage: async () => ({ mime: "image/svg+xml", data: Buffer.from(svg).toString("base64") })
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  const image = article.querySelector("img");
+  const sanitized = dom(Buffer.from(image.src.split(",")[1], "base64").toString()).window.document;
+  image.dispatchEvent(new Event("load"));
+  assert.deepEqual(await pending, []);
+  assert.equal(sanitized.querySelectorAll("image").length, 2);
+  assert.equal(sanitized.querySelector("#png").getAttribute("href"), `data:image/png;base64,${png}`);
+  assert.equal(sanitized.querySelector("#xlink").getAttribute("xlink:href"), `data:image/png;base64,${png}`);
+});
+
 /** @id TEST-PDF-001 @verifies REQ-PDF-001 */
 test("TEST-PDF-001 export awaits render and fonts and rejects missing resources", async () => {
   const { document } = dom("<article>Body</article>").window;
@@ -295,4 +321,74 @@ test("TEST-PDF-003 cancellation and failure restore reading state", async () => 
   await assert.rejects(exportDocument({ ...options, save: async () => { throw new Error("Disk full"); } }), /Disk full/);
   assert.equal(document.documentElement.hasAttribute("data-exporting"), false);
   assert.equal(article.textContent, "Keep me");
+});
+
+test("PDF rasterizes local SVGs only and restores original nodes on every save outcome", async () => {
+  for (const outcome of ["saved.pdf", null, new Error("Native failure")]) {
+    const { document, HTMLImageElement, HTMLCanvasElement } = dom(`<article>
+      <img alt="Chart" src="data:image/svg+xml;base64,PHN2Zy8+">
+      <img alt="PNG" src="data:image/png;base64,cG5n">
+      <img alt="Remote" src="https://example.com/image.svg">
+    </article>`).window;
+    const article = document.querySelector("article");
+    const originals = [...article.querySelectorAll("img")];
+    Object.defineProperties(HTMLImageElement.prototype, {
+      naturalWidth: { get: () => 128 }, naturalHeight: { get: () => 64 }
+    });
+    const decoded = [];
+    HTMLImageElement.prototype.decode = async function () { decoded.push(this); };
+    const drawings = [];
+    HTMLCanvasElement.prototype.getContext = function () {
+      return { drawImage: (image, _x, _y, width, height) => drawings.push({ image, width, height }) };
+    };
+    HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,cmFzdGVyaXplZA==";
+    const pending = exportDocument({
+      article, ready: Promise.resolve([]), fonts: Promise.resolve(),
+      save: async () => {
+        const [raster, png, remote] = article.querySelectorAll("img");
+        assert.match(raster.src, /^data:image\/png;base64,/);
+        assert.equal(raster.width, 128, "raster DPI must not enlarge the layout");
+        assert.equal(raster.alt, "Chart");
+        assert.equal(png, originals[1]);
+        assert.equal(remote, originals[2]);
+        assert.deepEqual(decoded, [originals[0], raster]);
+        assert.equal(drawings.length, 1);
+        assert.equal(drawings[0].image, originals[0]);
+        assert.ok(drawings[0].width > 128);
+        assert.equal(drawings[0].width / drawings[0].height, 2);
+        if (outcome instanceof Error) throw outcome;
+        return outcome;
+      }
+    });
+    if (outcome instanceof Error) await assert.rejects(pending, /Native failure/);
+    else assert.equal(await pending, outcome);
+    assert.deepEqual([...article.querySelectorAll("img")], originals);
+    assert.equal(document.documentElement.dataset.exporting, undefined);
+  }
+});
+
+test("PDF preparation failure restores earlier SVG replacements and never saves", async () => {
+  const { document, HTMLImageElement, HTMLCanvasElement } = dom(`<section id="document-view"><article>
+    <img alt="First" src="data:image/svg+xml;base64,Zmlyc3Q=">
+    <img alt="Broken" src="data:image/svg+xml;base64,c2Vjb25k">
+  </article></section>`).window;
+  const article = document.querySelector("article");
+  const originals = [...article.querySelectorAll("img")];
+  const view = article.parentElement;
+  view.style.zoom = "1.5";
+  Object.defineProperties(HTMLImageElement.prototype, {
+    naturalWidth: { get: () => 100 }, naturalHeight: { get: () => 100 }
+  });
+  HTMLImageElement.prototype.decode = async function () {
+    if (this.alt === "Broken") throw new Error("Decode failed");
+  };
+  HTMLCanvasElement.prototype.getContext = () => ({ drawImage() {} });
+  HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,cmFzdGVyaXplZA==";
+  await assert.rejects(exportDocument({
+    article, ready: Promise.resolve([]), fonts: Promise.resolve(),
+    save: async () => assert.fail("must not save")
+  }), /Broken.*Decode failed/);
+  assert.deepEqual([...article.querySelectorAll("img")], originals);
+  assert.equal(view.style.zoom, "1.5");
+  assert.equal(document.documentElement.dataset.exporting, undefined);
 });

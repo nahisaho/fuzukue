@@ -1,7 +1,7 @@
 export const ACTIONS = Object.freeze({
-  empty: Object.freeze({ open: true, export: false, exit: true }),
-  ready: Object.freeze({ open: true, export: true, exit: true }),
-  busy: Object.freeze({ open: false, export: false, exit: false })
+  empty: Object.freeze({ open: true, reload: false, export: false, exit: true, switch: false, close: false, zoom: false }),
+  ready: Object.freeze({ open: true, reload: true, export: true, exit: true, switch: true, close: true, zoom: true }),
+  busy: Object.freeze({ open: false, reload: false, export: false, exit: false, switch: false, close: false, zoom: false })
 });
 
 /** @id CODE-FILES-POLICY @implements REQ-FILES-003 */
